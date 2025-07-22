@@ -390,20 +390,20 @@ impl RenderContext {
         height: u16,
         render_mode: RenderMode,
     ) {
-        // TODO: Maybe we should move those checks into the dispatcher.
-        let wide = self.dispatcher.wide();
-        assert!(!wide.has_layers(), "some layers haven't been popped yet");
-        assert_eq!(
-            buffer.len(),
-            (width as usize) * (height as usize) * 4,
-            "provided width ({}) and height ({}) do not match buffer size ({})",
-            width,
-            height,
-            buffer.len(),
-        );
+        self.dispatcher.with_wide(Box::new(|wide| {
+            assert!(!wide.has_layers(), "some layers haven't been popped yet");
+            assert_eq!(
+                buffer.len(),
+                (width as usize) * (height as usize) * 4,
+                "provided width ({}) and height ({}) do not match buffer size ({})",
+                width,
+                height,
+                buffer.len(),
+            );
 
-        self.dispatcher
-            .rasterize(buffer, render_mode, width, height, &self.encoded_paints);
+            self.dispatcher
+                .rasterize(buffer, render_mode, width, height, &self.encoded_paints);
+        }));
     }
 
     /// Render the current context into a pixmap.

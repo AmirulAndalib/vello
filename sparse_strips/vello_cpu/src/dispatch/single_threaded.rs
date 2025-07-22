@@ -1,6 +1,7 @@
 // Copyright 2025 the Vello Authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::prelude::rust_2015::Box;
 use crate::RenderMode;
 use crate::dispatch::Dispatcher;
 use crate::fine::{F32Kernel, Fine, FineKernel, U8Kernel};
@@ -62,8 +63,8 @@ impl SingleThreadedDispatcher {
 }
 
 impl Dispatcher for SingleThreadedDispatcher {
-    fn wide(&self) -> &Wide {
-        &self.wide
+    fn with_wide<'a>(&self, func: Box<dyn FnOnce(&Wide) + 'a>) {
+        func(&self.wide)
     }
 
     fn fill_path(&mut self, path: &BezPath, fill_rule: Fill, transform: Affine, paint: Paint) {

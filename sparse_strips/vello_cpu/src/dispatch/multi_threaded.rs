@@ -323,8 +323,8 @@ impl MultiThreadedDispatcher {
 }
 
 impl Dispatcher for MultiThreadedDispatcher {
-    fn wide(&self) -> &Wide {
-        &self.wide
+    fn with_wide<'a>(&self, func: Box<dyn FnOnce(&Wide) + 'a>) {
+        func(&self.wide);
     }
 
     fn fill_path(&mut self, path: &BezPath, fill_rule: Fill, transform: Affine, paint: Paint) {
