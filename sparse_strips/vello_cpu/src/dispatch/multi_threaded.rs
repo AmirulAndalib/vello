@@ -19,7 +19,7 @@ use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::println;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::{Barrier, Mutex, OnceLock};
+use std::sync::{Barrier, Mutex, OnceLock, RwLock};
 use thread_local::ThreadLocal;
 use vello_common::coarse::{Cmd, Wide};
 use vello_common::encode::EncodedPaint;
@@ -41,7 +41,7 @@ struct CoarseHandlerInner {
 }
 
 #[derive(Clone)]
-struct CoarseHandler(Arc<Mutex<CoarseHandlerInner>>);
+struct CoarseHandler(Arc<RwLock<CoarseHandlerInner>>);
 
 impl Debug for CoarseHandler {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
@@ -52,27 +52,33 @@ impl Debug for CoarseHandler {
 impl CoarseHandler {
     fn new(width: u16, height: u16) -> Self {
         let wide = Wide::new(width, height);
-        Self(Arc::new(Mutex::new(CoarseHandlerInner { wide, receiver: None })))
+        Self(Arc::new(RwLock::new(CoarseHandlerInner { wide, receiver: None })))
     }
 
     fn reset(&self) {
-        let mut inner = self.0.lock().unwrap();
+        let mut inner = self.0.write().unwrap();
         inner.wide.reset();
         inner.receiver = None;
     }
 
     fn set_receiver(&self, receiver: CoarseCommandReceiver) {
-        let mut inner = self.0.lock().unwrap();
+        let mut inner = self.0.write().unwrap();
         inner.receiver = Some(receiver);
     }
     
     fn with_wide<'a>(&self, func: Box<dyn FnOnce(&Wide) + 'a>) {
-        let inner = self.0.lock().unwrap();
+        let inner = self.0.read().unwrap();
         func(&inner.wide);
     }
 
-    fn run_coarse(&self, abort_empty: bool) {
-        let mut guard = self.0.lock().unwrap();
+    fn run_coarse(&self, is_worker_thread: bool) {
+        let mut guard = if is_worker_thread {
+            let Ok(guard) = self.0.try_write() else { return };
+            guard
+        }   else {
+            self.0.write().unwrap()
+        };
+        
         let inner = guard.deref_mut();
         let wide = &mut inner.wide;
         let receiver = &mut inner.receiver;
@@ -99,7 +105,7 @@ impl CoarseHandler {
                 },
                 Err(e) => match e {
                     TryRecvError::Empty => {
-                        if abort_empty {
+                        if is_worker_thread {
                             return;
                         }
                     }
@@ -408,7 +414,7 @@ impl Dispatcher for MultiThreadedDispatcher {
         encoded_paints: &[EncodedPaint],
     ) {
         assert!(self.flushed, "attempted to rasterize before flushing");
-
+        
         match render_mode {
             RenderMode::OptimizeSpeed => match self.level {
                 #[cfg(all(feature = "std", target_arch = "aarch64"))]
