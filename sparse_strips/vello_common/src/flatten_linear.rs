@@ -82,7 +82,7 @@ pub fn cubic_is_flat(curve: &CubicBez) -> bool {
 #[inline]
 pub(crate) fn cubic_is_a_point(&curve: &CubicBez) -> bool {
     // Use <= so that tolerance can be zero.
-    (curve.p0 - curve.p1).hypot2() <= TOL_2
+    (curve.p0 - curve.p3).hypot2() <= TOL_2
         && (curve.p0 - curve.p1).hypot2() <= TOL_2
         && (curve.p3 - curve.p2).hypot2() <= TOL_2
 }
