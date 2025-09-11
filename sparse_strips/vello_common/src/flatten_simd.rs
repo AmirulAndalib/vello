@@ -57,19 +57,18 @@ pub(crate) fn flatten<S: Simd>(
                     // to be within the given tolerance.
                     if (p0 - p1).hypot2() <= TOL_2 && (p2 - p1).hypot2() <= TOL_2 {
                         callback.callback(PathEl::LineTo(p2));
-                        continue;
+                    }   else {
+                        let params = q.estimate_subdiv(sqrt_tol);
+                        let n = ((0.5 * params.val / sqrt_tol).ceil() as usize).max(1);
+                        let step = 1.0 / (n as f64);
+                        for i in 1..n {
+                            let u = (i as f64) * step;
+                            let t = q.determine_subdiv_t(&params, u);
+                            let p = q.eval(t);
+                            callback.callback(PathEl::LineTo(p));
+                        }
+                        callback.callback(PathEl::LineTo(p2));
                     }
-                    
-                    let params = q.estimate_subdiv(sqrt_tol);
-                    let n = ((0.5 * params.val / sqrt_tol).ceil() as usize).max(1);
-                    let step = 1.0 / (n as f64);
-                    for i in 1..n {
-                        let u = (i as f64) * step;
-                        let t = q.determine_subdiv_t(&params, u);
-                        let p = q.eval(t);
-                        callback.callback(PathEl::LineTo(p));
-                    }
-                    callback.callback(PathEl::LineTo(p2));
                 }
                 last_pt = Some(p2);
             }
@@ -86,30 +85,30 @@ pub(crate) fn flatten<S: Simd>(
                         && (p3 - p2).hypot2() <= TOL_2
                     {
                         callback.callback(PathEl::LineTo(p3));
-                        continue;
+                    }   else {
+                        crate::flatten_linear::flatten_cubic(
+                            &c, callback
+                        );
+
+                        // let max = simd.vectorize(
+                        //     #[inline(always)]
+                        //     || {
+                        //         flatten_cubic_simd(
+                        //             simd,
+                        //             c,
+                        //             flatten_ctx,
+                        //             tolerance as f32,
+                        //             &mut flattened_cubics,
+                        //         )
+                        //     },
+                        // );
+                        // 
+                        // for p in &flattened_cubics[1..max] {
+                        //     callback.callback(PathEl::LineTo(Point::new(p.x as f64, p.y as f64)));
+                        // }
                     }
-                    
-                    crate::flatten_linear::flatten_cubic(
-                        &c, callback
-                    );
-                    
-                    // let max = simd.vectorize(
-                    //     #[inline(always)]
-                    //     || {
-                    //         flatten_cubic_simd(
-                    //             simd,
-                    //             c,
-                    //             flatten_ctx,
-                    //             tolerance as f32,
-                    //             &mut flattened_cubics,
-                    //         )
-                    //     },
-                    // );
-                    // 
-                    // for p in &flattened_cubics[1..max] {
-                    //     callback.callback(PathEl::LineTo(Point::new(p.x as f64, p.y as f64)));
-                    // }
                 }
+                
                 last_pt = Some(p3);
             }
             PathEl::ClosePath => {
