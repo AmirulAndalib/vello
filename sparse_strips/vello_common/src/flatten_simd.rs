@@ -10,7 +10,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use bytemuck::{Pod, Zeroable};
 use fearless_simd::*;
-use crate::flatten::TOL_2;
+use crate::flatten::{TOL, TOL_2};
 #[cfg(not(feature = "std"))]
 use crate::kurbo::common::FloatFuncs as _;
 use crate::sixth_root::sixth_root;
@@ -33,7 +33,7 @@ pub(crate) fn flatten<S: Simd>(
     callback: &mut impl Callback,
     flatten_ctx: &mut FlattenCtx,
 ) {
-    // let mut flattened_cubics = vec![];
+    let mut flattened_cubics = vec![];
 
     let sqrt_tol = tolerance.sqrt();
     let mut last_pt = None;
@@ -86,26 +86,39 @@ pub(crate) fn flatten<S: Simd>(
                     {
                         callback.callback(PathEl::LineTo(p3));
                     }   else {
-                        crate::flatten_linear::flatten_cubic(
-                            &c, callback
-                        );
 
-                        // let max = simd.vectorize(
-                        //     #[inline(always)]
-                        //     || {
-                        //         flatten_cubic_simd(
-                        //             simd,
-                        //             c,
-                        //             flatten_ctx,
-                        //             tolerance as f32,
-                        //             &mut flattened_cubics,
-                        //         )
-                        //     },
-                        // );
-                        // 
-                        // for p in &flattened_cubics[1..max] {
-                        //     callback.callback(PathEl::LineTo(Point::new(p.x as f64, p.y as f64)));
-                        // }
+                        let use_linear = {
+                            const THRESHOLD: f64 = 64.0 * TOL;
+                            let x_min = p0.x.min(p1.x).min(p2.x).min(p3.x);
+                            let x_max = p0.x.max(p1.x).max(p2.x).max(p3.x);
+                            let y_min = p0.y.min(p1.y).min(p2.y).min(p3.y);
+                            let y_max = p0.y.max(p1.y).max(p2.y).max(p3.y);
+
+                            (x_max - x_min).abs() <= THRESHOLD && (y_max - y_min).abs() <= THRESHOLD
+                        };
+                        
+                        if use_linear {
+                            crate::flatten_linear::flatten_cubic(
+                                &c, callback
+                            );
+                        }   else {
+                            let max = simd.vectorize(
+                                #[inline(always)]
+                                || {
+                                    flatten_cubic_simd(
+                                        simd,
+                                        c,
+                                        flatten_ctx,
+                                        tolerance as f32,
+                                        &mut flattened_cubics,
+                                    )
+                                },
+                            );
+                            
+                            for p in &flattened_cubics[1..max] {
+                                callback.callback(PathEl::LineTo(Point::new(p.x as f64, p.y as f64)));
+                            }
+                        }
                     }
                 }
                 
