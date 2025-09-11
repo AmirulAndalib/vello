@@ -33,7 +33,7 @@ pub(crate) fn flatten<S: Simd>(
     callback: &mut impl Callback,
     flatten_ctx: &mut FlattenCtx,
 ) {
-    let mut flattened_cubics = vec![];
+    // let mut flattened_cubics = vec![];
 
     let sqrt_tol = tolerance.sqrt();
     let mut last_pt = None;
@@ -67,22 +67,27 @@ pub(crate) fn flatten<S: Simd>(
             PathEl::CurveTo(p1, p2, p3) => {
                 if let Some(p0) = last_pt {
                     let c = CubicBez::new(p0, p1, p2, p3);
-                    let max = simd.vectorize(
-                        #[inline(always)]
-                        || {
-                            flatten_cubic_simd(
-                                simd,
-                                c,
-                                flatten_ctx,
-                                tolerance as f32,
-                                &mut flattened_cubics,
-                            )
-                        },
+                    
+                    crate::flatten_linear::flatten_cubic(
+                        &c, callback
                     );
-
-                    for p in &flattened_cubics[1..max] {
-                        callback.callback(PathEl::LineTo(Point::new(p.x as f64, p.y as f64)));
-                    }
+                    
+                    // let max = simd.vectorize(
+                    //     #[inline(always)]
+                    //     || {
+                    //         flatten_cubic_simd(
+                    //             simd,
+                    //             c,
+                    //             flatten_ctx,
+                    //             tolerance as f32,
+                    //             &mut flattened_cubics,
+                    //         )
+                    //     },
+                    // );
+                    // 
+                    // for p in &flattened_cubics[1..max] {
+                    //     callback.callback(PathEl::LineTo(Point::new(p.x as f64, p.y as f64)));
+                    // }
                 }
                 last_pt = Some(p3);
             }
