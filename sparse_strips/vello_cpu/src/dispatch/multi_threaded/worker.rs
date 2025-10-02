@@ -67,6 +67,7 @@ impl Worker {
                     paint,
                     fill_rule,
                     aliasing_threshold,
+                    mask,
                 } => {
                     let start = self.strip_storage.strips.len() as u32;
                     let path = &render_task.allocation_group.path
@@ -86,6 +87,7 @@ impl Worker {
                         thread_id: self.thread_id,
                         strips: start..end,
                         paint,
+                        mask,
                     };
 
                     render_task
@@ -99,6 +101,7 @@ impl Worker {
                     paint,
                     stroke,
                     aliasing_threshold,
+                    mask,
                 } => {
                     let start = self.strip_storage.strips.len() as u32;
                     let path = &render_task.allocation_group.path
@@ -118,6 +121,7 @@ impl Worker {
                         thread_id: self.thread_id,
                         strips: start..end,
                         paint,
+                        mask,
                     };
 
                     render_task
@@ -182,6 +186,7 @@ impl Worker {
                         thread_id: thread_idx,
                         strips: strip_buf,
                         paint,
+                        mask: None,
                     };
 
                     render_task
