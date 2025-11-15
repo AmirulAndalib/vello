@@ -422,6 +422,7 @@ impl RenderContext {
         self.fill_rule = fill_rule;
     }
 
+    // TODO: Add explanation on how this differs to layer masks.
     /// Set the mask to use for path-painting operations.
     pub fn set_mask(&mut self, mask: Option<Mask>) {
         self.mask = mask;
