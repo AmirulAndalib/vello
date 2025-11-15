@@ -846,7 +846,14 @@ impl<const MODE: u8> WideTile<MODE> {
         }
     }
 
-    pub(crate) fn fill(&mut self, x: u16, width: u16, blend_mode: BlendMode, paint: Paint, mask: Option<Mask>) {
+    pub(crate) fn fill(
+        &mut self,
+        x: u16,
+        width: u16,
+        blend_mode: BlendMode,
+        paint: Paint,
+        mask: Option<Mask>,
+    ) {
         if !self.is_zero_clip() {
             match MODE {
                 MODE_CPU => {

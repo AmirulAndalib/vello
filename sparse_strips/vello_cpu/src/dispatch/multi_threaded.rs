@@ -305,9 +305,13 @@ impl MultiThreadedDispatcher {
                                 paint,
                                 thread_id,
                                 mask,
-                            } => self
-                                .wide
-                                .generate(&strips, paint.clone(), blend_mode, thread_id, mask),
+                            } => self.wide.generate(
+                                &strips,
+                                paint.clone(),
+                                blend_mode,
+                                thread_id,
+                                mask,
+                            ),
                             CoarseTaskType::PushLayer {
                                 thread_id,
                                 clip_path,

@@ -659,8 +659,13 @@ impl Scene {
             "Invalid strip range: start={start}, end={end}, count={count}"
         );
         let paint = self.encode_current_paint();
-        self.wide
-            .generate(&adjusted_strips[start..end], paint, self.blend_mode, 0, None);
+        self.wide.generate(
+            &adjusted_strips[start..end],
+            paint,
+            self.blend_mode,
+            0,
+            None,
+        );
     }
 
     /// Prepare cached strips for rendering by adjusting alpha indices and extending alpha buffer.
